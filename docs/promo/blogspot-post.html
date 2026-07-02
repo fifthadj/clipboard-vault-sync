@@ -1,0 +1,48 @@
+<p><b>複製即存,永久保留。</b>我開源了一個 Windows 系統匣小工具:<a href="https://github.com/fifthadj/clipboard-vault-sync">Clipboard Vault Sync</a>——它監看你的剪貼簿,把你複製的所有東西(文字<b>和圖片</b>)自動存進 <a href="https://obsidian.md">Obsidian</a> vault,變成一則一則帶時間戳的 Markdown 筆記。</p>
+
+<h3>為什麼不用 Obsidian 外掛就好?</h3>
+
+<p>因為外掛只有在 Obsidian 開著的時候才能收集。這個工具常駐系統匣,整天默默工作——你白天到處複製資料,晚上打開 vault,筆記已經整整齊齊躺在那裡了。</p>
+
+<h3>特色</h3>
+
+<ul>
+  <li>📋 <b>自動收集</b>——每次複製自動存成一則筆記(每筆一檔,檔名含日期時間)</li>
+  <li>🖼️ <b>圖片也收</b>——截圖自動轉 AVIF 格式省空間,筆記內直接顯示</li>
+  <li>🧠 <b>去重</b>——同樣的內容永遠只存一次,連重開機都記得</li>
+  <li>📁 <b>彈性目標</b>——可同步到 vault 內任何子資料夾(例如你的 inbox)</li>
+  <li>⌨️ <b>全域快捷鍵</b>——設定視窗點一下欄位、按下組合鍵就完成錄製</li>
+  <li>🔒 <b>100% 本地</b>——無網路連線、無遙測,程式碼全開源(MIT),歡迎查驗</li>
+</ul>
+
+<p><img src="https://raw.githubusercontent.com/fifthadj/clipboard-vault-sync/main/docs/screenshot-1.jpg" alt="系統匣選單" /></p>
+<p><img src="https://raw.githubusercontent.com/fifthadj/clipboard-vault-sync/main/docs/screenshot-2.jpg" alt="設定視窗" style="max-width:100%;" /></p>
+
+<h3>誠實提醒</h3>
+
+<p>它會存下你複製的<b>所有</b>東西——包括密碼等敏感文字。複製機密前請先從系統匣退出程式,或事後刪掉那則筆記。暫停開關與敏感內容過濾已在開發路線圖上。</p>
+
+<h3>下載</h3>
+
+<p>到 <a href="https://github.com/fifthadj/clipboard-vault-sync/releases">GitHub Releases</a> 下載免安裝的 portable exe(約 88 MB,雙擊即用)或安裝檔。目前支援 Windows;程式碼用的都是跨平台 API,macOS/Linux 理論可跑,歡迎回報。</p>
+
+<hr />
+
+<h2>English</h2>
+
+<p><b>Copy anything, keep it forever.</b> I open-sourced <a href="https://github.com/fifthadj/clipboard-vault-sync">Clipboard Vault Sync</a> — a Windows system-tray app that watches your clipboard and saves everything you copy (text <b>and images</b>) straight into your <a href="https://obsidian.md">Obsidian</a> vault as timestamped Markdown notes.</p>
+
+<p><b>Why not just use an Obsidian plugin?</b> Because plugins only capture while Obsidian is running. This sits in your tray capturing all day — your notes are just <i>there</i> next time you open the vault.</p>
+
+<ul>
+  <li>📋 Auto-capture — every copy becomes a note (one file per entry)</li>
+  <li>🖼️ Images too — screenshots auto-converted to AVIF</li>
+  <li>🧠 Dedup — the same content is never saved twice, even across restarts</li>
+  <li>📁 Sync to any folder inside your vault</li>
+  <li>⌨️ Global hotkey with press-to-record picker</li>
+  <li>🔒 100% local — no network, no telemetry. MIT licensed.</li>
+</ul>
+
+<p><b>Honest caveat:</b> it saves <i>everything</i> you copy, including passwords — quit it from the tray before copying secrets. A pause toggle and pattern filtering are on the roadmap.</p>
+
+<p>Downloads (portable exe, ~88 MB) and source: <a href="https://github.com/fifthadj/clipboard-vault-sync">github.com/fifthadj/clipboard-vault-sync</a></p>
