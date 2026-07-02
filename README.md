@@ -17,6 +17,13 @@ The key difference from Obsidian clipboard plugins: **Obsidian doesn't need to b
 
 > ⚠️ **Honest note — this saves *everything* you copy**, including passwords and other sensitive text, into plain-text Markdown files in your vault. Quit the app from the tray before copying secrets, or delete the note afterwards. A pause toggle and pattern-based filtering are on the roadmap.
 
+## Screenshots
+
+| Tray menu | Settings |
+|:---:|:---:|
+| ![Tray menu](docs/screenshot-1.jpg) | ![Settings window](docs/screenshot-2.jpg) |
+| Lives in your system tray | Pick any folder inside a vault; press-to-record hotkey |
+
 ## Install
 
 Grab the portable `.exe` (no install needed) or the installer from [Releases](https://github.com/fifthadj/clipboard-vault-sync/releases).
