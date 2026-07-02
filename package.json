@@ -1,0 +1,67 @@
+{
+  "name": "clipboard-vault-sync",
+  "version": "0.1.0",
+  "description": "Clipboard to Obsidian Vault auto-sync with image support",
+  "main": "dist/main.js",
+  "homepage": "./",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/fifthadj/clipboard-vault-sync.git"
+  },
+  "author": "Mario Hsu",
+  "license": "MIT",
+  "scripts": {
+    "icons": "node scripts/generate-icons.js",
+    "postinstall": "npm run icons",
+    "dev": "npm run build && concurrently \"tsc --watch\" \"electron .\"",
+    "build": "tsc",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "package": "electron-builder",
+    "pack": "npm run build && electron-builder --dir",
+    "dist": "npm run build && electron-builder"
+  },
+  "dependencies": {
+    "sharp": "^0.32.0"
+  },
+  "devDependencies": {
+    "@types/electron": "^1.6.10",
+    "@types/jest": "^29.5.0",
+    "@types/node": "^20.0.0",
+    "concurrently": "^8.0.1",
+    "electron": "^29.0.0",
+    "electron-builder": "^24.0.0",
+    "jest": "^29.5.0",
+    "ts-jest": "^29.1.0",
+    "typescript": "^5.0.0"
+  },
+  "build": {
+    "appId": "com.clipboard-vault-sync",
+    "productName": "Clipboard Vault Sync",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "dist/**/*",
+      "renderer/**/*",
+      "assets/**/*"
+    ],
+    "win": {
+      "icon": "assets/icon.png",
+      "target": [
+        {
+          "target": "nsis",
+          "arch": ["x64"]
+        },
+        {
+          "target": "portable",
+          "arch": ["x64"]
+        }
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true
+    }
+  }
+}

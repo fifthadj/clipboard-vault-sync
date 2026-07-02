@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <title>Clipboard Vault Sync - Settings</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        background-color: #f5f5f5;
+        padding: 20px;
+      }
+
+      .container {
+        max-width: 500px;
+        margin: 0 auto;
+        background: white;
+        border-radius: 8px;
+        padding: 20px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+      }
+
+      h1 {
+        font-size: 24px;
+        margin-bottom: 20px;
+        color: #333;
+      }
+
+      .setting-group {
+        margin-bottom: 20px;
+        padding-bottom: 20px;
+        border-bottom: 1px solid #eee;
+      }
+
+      .setting-group:last-child {
+        border-bottom: none;
+        padding-bottom: 0;
+        margin-bottom: 0;
+      }
+
+      label {
+        display: block;
+        font-weight: 600;
+        margin-bottom: 8px;
+        color: #333;
+      }
+
+      input[type='text'],
+      select {
+        width: 100%;
+        padding: 8px 12px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        font-size: 14px;
+        font-family: monospace;
+      }
+
+      input[type='text']:focus,
+      select:focus {
+        outline: none;
+        border-color: #4a90e2;
+        box-shadow: 0 0 0 2px rgba(74, 144, 226, 0.1);
+      }
+
+      .vault-item {
+        padding: 10px;
+        margin: 5px 0;
+        background-color: #f9f9f9;
+        border: 1px solid #e0e0e0;
+        border-radius: 4px;
+        cursor: pointer;
+        transition: background-color 0.2s;
+      }
+
+      .vault-item:hover {
+        background-color: #f0f0f0;
+      }
+
+      .vault-item.active {
+        background-color: #e3f2fd;
+        border-color: #4a90e2;
+      }
+
+      button {
+        background-color: #4a90e2;
+        color: white;
+        padding: 10px 16px;
+        border: none;
+        border-radius: 4px;
+        font-size: 14px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: background-color 0.2s;
+      }
+
+      button:hover {
+        background-color: #357abd;
+      }
+
+      button:active {
+        background-color: #2a5a8f;
+      }
+
+      .status {
+        font-size: 12px;
+        color: #666;
+        margin-top: 8px;
+      }
+
+      .status.success {
+        color: #4caf50;
+      }
+
+      .status.error {
+        color: #f44336;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1>⚙️ Settings</h1>
+
+      <!-- 2026-07-02 22:48:00 顯示目前同步目錄完整路徑（可能是 vault 內子目錄）＋ Browse 按鈕. By Claude Fable 5 (effort: default), 傳企監看。begin -->
+      <div class="setting-group">
+        <label>目前同步目錄 (Current Sync Folder)</label>
+        <div id="currentVault" style="font-family: monospace; font-size: 13px; padding: 8px 12px; background: #f0f7ff; border: 1px solid #4a90e2; border-radius: 4px; word-break: break-all;"></div>
+        <button onclick="browseVault()" style="margin-top: 8px;">📂 Browse... (選擇 Vault 內任一子目錄)</button>
+        <div class="status" id="vaultStatus"></div>
+      </div>
+
+      <div class="setting-group">
+        <label>Vault 清單 (點選切換為該 Vault 根目錄)</label>
+        <div id="vaultList"></div>
+      </div>
+      <!-- 2026-07-02 22:48:00 顯示目前同步目錄完整路徑（可能是 vault 內子目錄）＋ Browse 按鈕. By Claude Fable 5 (effort: default), 傳企監看。 end -->
+      <!-- 2026-07-02 22:48:00 舊版：只有 vaultList，無法顯示/選擇子目錄. By Claude Fable 5 (effort: default), 傳企監看。begin
+      <div class="setting-group">
+        <label>Selected Vault</label>
+        <div id="vaultList"></div>
+        <div class="status" id="vaultStatus"></div>
+      </div>
+      2026-07-02 22:48:00 舊版：只有 vaultList，無法顯示/選擇子目錄. By Claude Fable 5 (effort: default), 傳企監看。 end -->
+
+      <!-- 2026-07-03 00:10:00 Hotkey 改為按鍵錄製：點欄位後直接按組合鍵自動偵測. By Claude Fable 5 (effort: default), 傳企監看。begin -->
+      <div class="setting-group">
+        <label>Global Hotkey（點擊欄位後直接按下組合鍵）</label>
+        <input
+          type="text"
+          id="hotkey"
+          readonly
+          placeholder="點此後按下組合鍵，例如 Ctrl+Alt+C"
+          style="cursor: pointer; background: #fffef5;"
+        />
+        <button onclick="saveHotkey()" style="margin-top: 8px;">Save Hotkey</button>
+        <div class="status" id="hotkeyStatus"></div>
+      </div>
+      <!-- 2026-07-03 00:10:00 Hotkey 改為按鍵錄製：點欄位後直接按組合鍵自動偵測. By Claude Fable 5 (effort: default), 傳企監看。 end -->
+      <!-- 2026-07-03 00:10:00 舊版：手打文字輸入. By Claude Fable 5 (effort: default), 傳企監看。begin
+      <div class="setting-group">
+        <label>Global Hotkey</label>
+        <input
+          type="text"
+          id="hotkey"
+          placeholder="e.g., Ctrl+Alt+C"
+        />
+        <button onclick="saveHotkey()">Save Hotkey</button>
+        <div class="status" id="hotkeyStatus"></div>
+      </div>
+      2026-07-03 00:10:00 舊版：手打文字輸入. By Claude Fable 5 (effort: default), 傳企監看。 end -->
+
+      <div class="setting-group">
+        <button onclick="openVaultFolder()">📁 Open Vault Folder</button>
+        <button onclick="refreshVaults()">🔄 Refresh Vaults</button>
+      </div>
+    </div>
+
+    <script>
+      async function loadConfig() {
+        const config = await window.appAPI.getConfig();
+        document.getElementById('hotkey').value = config.globalHotkey;
+
+        await loadVaults();
+      }
+
+      // 2026-07-02 22:48:00 新版：顯示完整路徑、辨識子目錄選取、加 Browse；舊版整塊註解保留於下. By Claude Fable 5 (effort: default), 傳企監看。begin
+      async function loadVaults() {
+        const vaults = await window.appAPI.getVaults();
+        const config = await window.appAPI.getConfig();
+        const selected = config.selectedVault || '';
+
+        document.getElementById('currentVault').textContent =
+          selected || '（尚未選擇）';
+
+        const vaultList = document.getElementById('vaultList');
+        vaultList.innerHTML = '';
+
+        if (vaults.length === 0) {
+          vaultList.innerHTML = '<p style="color: #999;">No vaults found</p>';
+          return;
+        }
+
+        vaults.forEach((vault) => {
+          const div = document.createElement('div');
+          div.className = 'vault-item';
+
+          const isExact = vault === selected;
+          const isSubdir =
+            !isExact &&
+            (selected.startsWith(vault + '\\') || selected.startsWith(vault + '/'));
+          if (isExact || isSubdir) {
+            div.classList.add('active');
+          }
+
+          // 顯示完整路徑；若目前選的是此 vault 內的子目錄，標示出來
+          div.textContent = `📚 ${vault}${isSubdir ? '（目前同步其子目錄）' : ''}`;
+
+          div.onclick = () => selectVault(vault, isSubdir);
+          vaultList.appendChild(div);
+        });
+      }
+
+      async function selectVault(vaultPath, isSubdir) {
+        // 目前選的是此 vault 的子目錄時，點根目錄會覆寫子目錄選擇，先確認
+        if (isSubdir && !confirm('目前同步的是此 Vault 內的子目錄，切換為 Vault 根目錄？')) {
+          return;
+        }
+        const success = await window.appAPI.setVault(vaultPath);
+        if (success) {
+          document.getElementById('vaultStatus').textContent = '✓ Vault selected';
+          document.getElementById('vaultStatus').className = 'status success';
+          loadVaults();
+        }
+      }
+
+      async function browseVault() {
+        const selected = await window.appAPI.browseVaultFolder();
+        if (selected) {
+          document.getElementById('vaultStatus').textContent = '✓ 已更新同步目錄';
+          document.getElementById('vaultStatus').className = 'status success';
+        }
+        loadVaults();
+      }
+      // 2026-07-02 22:48:00 新版：顯示完整路徑、辨識子目錄選取、加 Browse；舊版整塊註解保留於下. By Claude Fable 5 (effort: default), 傳企監看。 end
+
+      /* 2026-07-02 22:48:00 舊版：只顯示資料夾名、只比對完全相等，子目錄選取顯示不出來且會被覆寫. By Claude Fable 5 (effort: default), 傳企監看。begin
+      async function loadVaults() {
+        const vaults = await window.appAPI.getVaults();
+        const config = await window.appAPI.getConfig();
+
+        const vaultList = document.getElementById('vaultList');
+        vaultList.innerHTML = '';
+
+        if (vaults.length === 0) {
+          vaultList.innerHTML = '<p style="color: #999;">No vaults found</p>';
+          return;
+        }
+
+        vaults.forEach((vault) => {
+          const div = document.createElement('div');
+          div.className = 'vault-item';
+          if (vault === config.selectedVault) {
+            div.classList.add('active');
+          }
+
+          const name = vault.split(/[/\\]/).pop();
+          div.textContent = `📚 ${name}`;
+
+          div.onclick = () => selectVault(vault);
+          vaultList.appendChild(div);
+        });
+      }
+
+      async function selectVault(vaultPath) {
+        const success = await window.appAPI.setVault(vaultPath);
+        if (success) {
+          document.getElementById('vaultStatus').textContent = '✓ Vault selected';
+          document.getElementById('vaultStatus').className = 'status success';
+          loadVaults();
+        }
+      }
+      2026-07-02 22:48:00 舊版：只顯示資料夾名、只比對完全相等，子目錄選取顯示不出來且會被覆寫. By Claude Fable 5 (effort: default), 傳企監看。 end */
+
+      async function saveHotkey() {
+        const hotkey = document.getElementById('hotkey').value;
+        const success = await window.appAPI.setHotkey(hotkey);
+        const status = document.getElementById('hotkeyStatus');
+
+        if (success) {
+          status.textContent = '✓ Hotkey saved';
+          status.className = 'status success';
+        } else {
+          status.textContent = '✗ Invalid hotkey format';
+          status.className = 'status error';
+        }
+      }
+
+      async function openVaultFolder() {
+        try {
+          await window.appAPI.openVaultFolder();
+          document.getElementById('vaultStatus').textContent = '✓ Opening vault folder...';
+          document.getElementById('vaultStatus').className = 'status success';
+          setTimeout(() => {
+            document.getElementById('vaultStatus').textContent = '';
+          }, 2000);
+        } catch (error) {
+          console.error('Error opening vault folder:', error);
+          document.getElementById('vaultStatus').textContent = '✗ Failed to open vault folder';
+          document.getElementById('vaultStatus').className = 'status error';
+        }
+      }
+
+      function refreshVaults() {
+        loadVaults();
+      }
+
+      // 2026-07-03 00:10:00 按鍵錄製：keydown 轉 Electron accelerator 字串. By Claude Fable 5 (effort: default), 傳企監看。begin
+      (function setupHotkeyRecorder() {
+        const input = document.getElementById('hotkey');
+        const status = document.getElementById('hotkeyStatus');
+
+        input.addEventListener('focus', () => {
+          status.textContent = '請按下組合鍵…（Esc 取消）';
+          status.className = 'status';
+        });
+
+        input.addEventListener('keydown', (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+
+          if (e.key === 'Escape') {
+            input.blur();
+            status.textContent = '';
+            return;
+          }
+
+          // 純修飾鍵先不定案，等主鍵按下
+          if (['Control', 'Alt', 'Shift', 'Meta'].includes(e.key)) {
+            const mods = [];
+            if (e.ctrlKey) mods.push('Ctrl');
+            if (e.altKey) mods.push('Alt');
+            if (e.shiftKey) mods.push('Shift');
+            if (e.metaKey) mods.push('Super');
+            input.value = mods.join('+') + (mods.length ? '+…' : '');
+            return;
+          }
+
+          // 主鍵：由 e.code 轉 Electron accelerator 鍵名
+          let key = null;
+          if (/^Key[A-Z]$/.test(e.code)) key = e.code.slice(3);
+          else if (/^Digit[0-9]$/.test(e.code)) key = e.code.slice(5);
+          else if (/^F([1-9]|1[0-9]|2[0-4])$/.test(e.code)) key = e.code;
+          else if (/^Numpad[0-9]$/.test(e.code)) key = 'num' + e.code.slice(6);
+          else {
+            const special = {
+              Space: 'Space', Enter: 'Enter', Tab: 'Tab', Backspace: 'Backspace',
+              Delete: 'Delete', Insert: 'Insert', Home: 'Home', End: 'End',
+              PageUp: 'PageUp', PageDown: 'PageDown',
+              ArrowUp: 'Up', ArrowDown: 'Down', ArrowLeft: 'Left', ArrowRight: 'Right',
+              Minus: '-', Equal: '=', BracketLeft: '[', BracketRight: ']',
+              Semicolon: ';', Quote: "'", Comma: ',', Period: '.', Slash: '/', Backquote: '`',
+            };
+            key = special[e.code] || null;
+          }
+
+          if (!key) {
+            status.textContent = '✗ 不支援的按鍵';
+            status.className = 'status error';
+            return;
+          }
+
+          const mods = [];
+          if (e.ctrlKey) mods.push('Ctrl');
+          if (e.altKey) mods.push('Alt');
+          if (e.shiftKey) mods.push('Shift');
+          if (e.metaKey) mods.push('Super');
+
+          // 全域快捷鍵至少要一個修飾鍵，避免吃掉一般打字
+          if (mods.length === 0) {
+            status.textContent = '✗ 至少要搭配一個修飾鍵（Ctrl / Alt / Shift / Win）';
+            status.className = 'status error';
+            return;
+          }
+
+          input.value = [...mods, key].join('+');
+          status.textContent = '已偵測，按「Save Hotkey」儲存';
+          status.className = 'status success';
+        });
+      })();
+      // 2026-07-03 00:10:00 按鍵錄製：keydown 轉 Electron accelerator 字串. By Claude Fable 5 (effort: default), 傳企監看。 end
+
+      // Load config on startup
+      loadConfig();
+    </script>
+  </body>
+</html>

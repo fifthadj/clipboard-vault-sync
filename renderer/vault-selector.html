@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <title>Select Vault - Clipboard Vault Sync</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        background-color: #f5f5f5;
+        padding: 20px;
+      }
+
+      .container {
+        max-width: 600px;
+        margin: 0 auto;
+        background: white;
+        border-radius: 8px;
+        padding: 30px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+      }
+
+      h1 {
+        font-size: 28px;
+        margin-bottom: 10px;
+        color: #333;
+      }
+
+      .subtitle {
+        font-size: 14px;
+        color: #666;
+        margin-bottom: 30px;
+      }
+
+      .vault-list {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+      }
+
+      .vault-item {
+        padding: 16px;
+        background-color: #f9f9f9;
+        border: 2px solid #e0e0e0;
+        border-radius: 6px;
+        cursor: pointer;
+        transition: all 0.2s;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+      }
+
+      .vault-item:hover {
+        background-color: #f0f0f0;
+        border-color: #4a90e2;
+        transform: translateX(4px);
+      }
+
+      .vault-item.active {
+        background-color: #e3f2fd;
+        border-color: #4a90e2;
+        box-shadow: 0 2px 8px rgba(74, 144, 226, 0.2);
+      }
+
+      .vault-info {
+        flex: 1;
+      }
+
+      .vault-name {
+        font-weight: 600;
+        font-size: 16px;
+        color: #333;
+        margin-bottom: 4px;
+      }
+
+      .vault-path {
+        font-size: 12px;
+        color: #999;
+        font-family: monospace;
+        word-break: break-all;
+      }
+
+      .vault-status {
+        margin-left: 16px;
+        font-size: 20px;
+      }
+
+      .status-message {
+        margin-top: 20px;
+        padding: 12px;
+        border-radius: 4px;
+        font-size: 14px;
+        display: none;
+      }
+
+      .status-message.success {
+        background-color: #d4edda;
+        color: #155724;
+        border: 1px solid #c3e6cb;
+        display: block;
+      }
+
+      .status-message.error {
+        background-color: #f8d7da;
+        color: #721c24;
+        border: 1px solid #f5c6cb;
+        display: block;
+      }
+
+      .footer {
+        margin-top: 20px;
+        font-size: 12px;
+        color: #999;
+        text-align: center;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1>📚 Select Vault</h1>
+      <p class="subtitle">Choose which Obsidian Vault to sync with</p>
+
+      <div class="vault-list" id="vaultList"></div>
+
+      <div class="status-message" id="statusMessage"></div>
+
+      <div class="footer">
+        Click on a vault to select it. Selected vault will be used for clipboard sync.
+      </div>
+    </div>
+
+    <script>
+      async function loadVaults() {
+        const vaults = await window.appAPI.getVaults();
+        const config = await window.appAPI.getConfig();
+
+        const vaultList = document.getElementById('vaultList');
+        vaultList.innerHTML = '';
+
+        if (vaults.length === 0) {
+          vaultList.innerHTML = '<p style="color: #999; text-align: center; padding: 40px;">No vaults found</p>';
+          return;
+        }
+
+        vaults.forEach((vault) => {
+          const div = document.createElement('div');
+          div.className = 'vault-item';
+
+          if (vault === config.selectedVault) {
+            div.classList.add('active');
+          }
+
+          const name = vault.split(/[/\\]/).pop();
+          div.innerHTML = `
+            <div class="vault-info">
+              <div class="vault-name">📁 ${name}</div>
+              <div class="vault-path">${vault}</div>
+            </div>
+            <div class="vault-status">${vault === config.selectedVault ? '✓' : ''}</div>
+          `;
+
+          div.onclick = () => selectVault(vault);
+          vaultList.appendChild(div);
+        });
+      }
+
+      async function selectVault(vaultPath) {
+        try {
+          const success = await window.appAPI.setVault(vaultPath);
+          if (success) {
+            const statusMessage = document.getElementById('statusMessage');
+            statusMessage.textContent = `✓ Vault selected: ${vaultPath.split(/[/\\]/).pop()}`;
+            statusMessage.className = 'status-message success';
+
+            // Reload vaults to update UI
+            setTimeout(loadVaults, 500);
+          }
+        } catch (error) {
+          console.error('Error selecting vault:', error);
+          const statusMessage = document.getElementById('statusMessage');
+          statusMessage.textContent = '✗ Failed to select vault';
+          statusMessage.className = 'status-message error';
+        }
+      }
+
+      // Load vaults on startup
+      loadVaults();
+    </script>
+  </body>
+</html>
