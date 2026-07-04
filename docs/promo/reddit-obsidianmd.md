@@ -1,4 +1,4 @@
-# Reddit r/ObsidianMD 草稿(2026-07-03 擬,待帳號養成後發;排程 2026-07-10)
+# Reddit r/ObsidianMD 草稿(2026-07-03 擬,2026-07-04 更新到 v0.1.1;待帳號養成後發;排程 2026-07-10)
 
 > 註:版規「Don't shill / If your first post is to promote your app, you will
 > be banned」——帳號 2026-07-03 新註冊,需先以真實留言參與約一週再發。
@@ -22,15 +22,20 @@ day, then the notes are just *there* next time I open the vault.
 **Features:**
 
 - Auto-capture — every copy becomes a timestamped note (one file per entry)
-- Images converted to AVIF and linked from the note
+- Images converted to AVIF (bundled encoder; falls back to PNG if conversion
+  fails, so images are never lost) and linked from the note
+- Toast notification on every save — you always know it worked
+- Continuous-capture toggle in the tray: on = auto-save every copy,
+  off = save only when you press the hotkey
 - Dedup — the same content is never saved twice, even across app restarts
 - Sync target can be any folder inside the vault (e.g. my inbox)
 - Global hotkey with press-to-record picker
+- UI in English and Traditional Chinese (follows system language)
 - 100% local — no network, no telemetry. MIT licensed.
 
-**Honest caveat:** it saves *everything* you copy, including sensitive text —
-quit it from the tray before copying secrets. A pause toggle and pattern
-filtering are on the roadmap.
+**Honest caveat:** with continuous capture on it saves *everything* you copy,
+including sensitive text — flip it to hotkey-only mode (or quit) before
+copying secrets. Pattern-based filtering is on the roadmap.
 
 GitHub (source + downloads): https://github.com/fifthadj/clipboard-vault-sync
 
