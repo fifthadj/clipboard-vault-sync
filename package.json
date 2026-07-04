@@ -1,6 +1,6 @@
 {
   "name": "clipboard-vault-sync",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Clipboard to Obsidian Vault auto-sync with image support",
   "main": "dist/main.js",
   "homepage": "./",
