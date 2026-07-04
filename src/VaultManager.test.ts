@@ -60,6 +60,13 @@ describe('VaultManager', () => {
   );
   // 2026-07-04 17:25:07 舊 fixture 的 IDAT CRC 是壞的（sharp/libvips 寬容照吃，avifenc/libpng 嚴格拒收），換成合法 1x1 PNG. By Claude Fable 5 (effort: default), 傳企監看。 end
 
+  // 2026-07-04 18:15:22 avifenc 二進位只入庫 Windows 版：CI ubuntu job 無 avifenc，AVIF 成功路徑測試條件式 skip（Windows 仍完整跑；退存 PNG 路徑各平台都測）. By Claude Fable 5 (effort: default), 傳企監看。begin
+  const avifencAvailable = fs.existsSync(
+    path.join(__dirname, '../assets/bin', process.platform === 'win32' ? 'avifenc.exe' : 'avifenc')
+  );
+  const itIfAvifenc = avifencAvailable ? it : it.skip;
+  // 2026-07-04 18:15:22 avifenc 二進位只入庫 Windows 版：CI ubuntu job 無 avifenc，AVIF 成功路徑測試條件式 skip（Windows 仍完整跑；退存 PNG 路徑各平台都測）. By Claude Fable 5 (effort: default), 傳企監看。 end
+
   describe('appendToClipboardNote', () => {
     it('should create one note file per clipboard entry with text content', async () => {
       const vault = new VaultManager(testVaultPath);
@@ -116,7 +123,10 @@ describe('VaultManager', () => {
       expect(content).toContain('Second entry');
     });
 
-    it('should save image as avif and reference it via attachments/ (no ../)', async () => {
+    // 2026-07-04 18:15:22 無 avifenc 環境（CI ubuntu）skip：此測試驗證 AVIF 成功路徑. By Claude Fable 5 (effort: default), 傳企監看。begin
+    // it('should save image as avif and reference it via attachments/ (no ../)', async () => {
+    itIfAvifenc('should save image as avif and reference it via attachments/ (no ../)', async () => {
+    // 2026-07-04 18:15:22 無 avifenc 環境（CI ubuntu）skip：此測試驗證 AVIF 成功路徑. By Claude Fable 5 (effort: default), 傳企監看。 end
       const vault = new VaultManager(testVaultPath);
       const timestamp = '14:45:00.000';
 
@@ -144,7 +154,7 @@ describe('VaultManager', () => {
     });
 
     // 2026-07-04 17:25:07 新增：avifenc sidecar 成功/失敗退存 PNG 與 SaveResult 回傳值測試. By Claude Fable 5 (effort: default), 傳企監看。begin
-    it('should report savedImage avif in SaveResult when avifenc succeeds', async () => {
+    itIfAvifenc('should report savedImage avif in SaveResult when avifenc succeeds', async () => {
       const vault = new VaultManager(testVaultPath);
 
       const result = await vault.appendToClipboardNote('with image', pngBuffer, '15:00:00.000');
