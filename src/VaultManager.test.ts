@@ -43,15 +43,22 @@ describe('VaultManager', () => {
   };
   // 2026-07-02 23:03:00 檔名含本地日期，測試用同邏輯計算今天. By Claude Fable 5 (effort: default), 傳企監看。 end
 
-  // 1x1 PNG
-  const pngBuffer = Buffer.from([
-    0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0x00, 0x00, 0x00, 0x0d,
-    0x49, 0x48, 0x44, 0x52, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01,
-    0x08, 0x02, 0x00, 0x00, 0x00, 0x90, 0x77, 0x53, 0xde, 0x00, 0x00, 0x00,
-    0x0c, 0x49, 0x44, 0x41, 0x54, 0x08, 0x99, 0x63, 0xf8, 0xcf, 0xc0, 0x00,
-    0x00, 0x03, 0x01, 0x01, 0x00, 0x18, 0xdd, 0x8d, 0xb4, 0x00, 0x00, 0x00,
-    0x00, 0x49, 0x45, 0x4e, 0x44, 0xae, 0x42, 0x60, 0x82,
-  ]);
+  // 2026-07-04 17:25:07 舊 fixture 的 IDAT CRC 是壞的（sharp/libvips 寬容照吃，avifenc/libpng 嚴格拒收），換成合法 1x1 PNG. By Claude Fable 5 (effort: default), 傳企監看。begin
+  // // 1x1 PNG
+  // const pngBuffer = Buffer.from([
+  //   0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0x00, 0x00, 0x00, 0x0d,
+  //   0x49, 0x48, 0x44, 0x52, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01,
+  //   0x08, 0x02, 0x00, 0x00, 0x00, 0x90, 0x77, 0x53, 0xde, 0x00, 0x00, 0x00,
+  //   0x0c, 0x49, 0x44, 0x41, 0x54, 0x08, 0x99, 0x63, 0xf8, 0xcf, 0xc0, 0x00,
+  //   0x00, 0x03, 0x01, 0x01, 0x00, 0x18, 0xdd, 0x8d, 0xb4, 0x00, 0x00, 0x00,
+  //   0x00, 0x49, 0x45, 0x4e, 0x44, 0xae, 0x42, 0x60, 0x82,
+  // ]);
+  // 1x1 PNG（合法檔，avifenc 可讀）
+  const pngBuffer = Buffer.from(
+    'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==',
+    'base64'
+  );
+  // 2026-07-04 17:25:07 舊 fixture 的 IDAT CRC 是壞的（sharp/libvips 寬容照吃，avifenc/libpng 嚴格拒收），換成合法 1x1 PNG. By Claude Fable 5 (effort: default), 傳企監看。 end
 
   describe('appendToClipboardNote', () => {
     it('should create one note file per clipboard entry with text content', async () => {
@@ -135,6 +142,59 @@ describe('VaultManager', () => {
       expect(content).toContain(text);
       expect(content).toContain('![](attachments/clipboard_');
     });
+
+    // 2026-07-04 17:25:07 新增：avifenc sidecar 成功/失敗退存 PNG 與 SaveResult 回傳值測試. By Claude Fable 5 (effort: default), 傳企監看。begin
+    it('should report savedImage avif in SaveResult when avifenc succeeds', async () => {
+      const vault = new VaultManager(testVaultPath);
+
+      const result = await vault.appendToClipboardNote('with image', pngBuffer, '15:00:00.000');
+
+      expect(result).not.toBeNull();
+      expect(result!.savedText).toBe(true);
+      expect(result!.savedImage).toBe('avif');
+
+      const attachments = fs.readdirSync(path.join(testVaultPath, 'attachments'));
+      const avifFile = attachments.find((f) => f.endsWith('.avif'));
+      expect(avifFile).toBeDefined();
+      expect(fs.statSync(path.join(testVaultPath, 'attachments', avifFile!)).size).toBeGreaterThan(0);
+    });
+
+    it('should fall back to PNG (image never lost) when avifenc is unavailable', async () => {
+      VaultManager.avifencPathOverride = path.join(testVaultPath, 'no-such-avifenc.exe');
+      try {
+        const vault = new VaultManager(testVaultPath);
+        const timestamp = '15:05:00.000';
+
+        const result = await vault.appendToClipboardNote('', pngBuffer, timestamp);
+
+        expect(result).not.toBeNull();
+        expect(result!.savedImage).toBe('png');
+
+        const content = fs.readFileSync(vault.getClipboardNotePath(timestamp), 'utf-8');
+        expect(content).toContain('.png)');
+        expect(content).not.toContain('.avif)');
+
+        const attachments = fs.readdirSync(path.join(testVaultPath, 'attachments'));
+        const pngFile = attachments.find((f) => f.endsWith('.png'));
+        expect(pngFile).toBeDefined();
+        // 退存的 PNG 必須是剪貼簿原始 bytes
+        expect(
+          fs.readFileSync(path.join(testVaultPath, 'attachments', pngFile!)).equals(pngBuffer)
+        ).toBe(true);
+      } finally {
+        VaultManager.avifencPathOverride = null;
+      }
+    });
+
+    it('should return null when nothing is saved', async () => {
+      const vault = new VaultManager(testVaultPath);
+
+      const result = await vault.appendToClipboardNote('', undefined, '15:10:00.000');
+
+      expect(result).toBeNull();
+      expect(listNotes()).toHaveLength(0);
+    });
+    // 2026-07-04 17:25:07 新增：avifenc sidecar 成功/失敗退存 PNG 與 SaveResult 回傳值測試. By Claude Fable 5 (effort: default), 傳企監看。 end
   });
 
   describe('scanVaults', () => {

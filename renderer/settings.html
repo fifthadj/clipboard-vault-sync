@@ -123,21 +123,33 @@
   </head>
   <body>
     <div class="container">
-      <h1>⚙️ Settings</h1>
+      <!-- 2026-07-04 17:57:07 全部靜態標籤改 data-i18n，由 initI18n() 套用字典；新增語言下拉. By Claude Fable 5 (effort: default), 傳企監看。begin
+      舊版靜態文字：<h1>⚙️ Settings</h1>、目前同步目錄 (Current Sync Folder)、📂 Browse... (選擇 Vault 內任一子目錄)、Vault 清單 (點選切換為該 Vault 根目錄)
+      -->
+      <h1 data-i18n="settings.title">⚙️ Settings</h1>
 
-      <!-- 2026-07-02 22:48:00 顯示目前同步目錄完整路徑（可能是 vault 內子目錄）＋ Browse 按鈕. By Claude Fable 5 (effort: default), 傳企監看。begin -->
       <div class="setting-group">
-        <label>目前同步目錄 (Current Sync Folder)</label>
+        <label data-i18n="settings.languageLabel">Language</label>
+        <select id="language" onchange="saveLanguage()">
+          <option value="auto" data-i18n="settings.languageAuto">Auto (system language)</option>
+          <option value="zh-TW">繁體中文</option>
+          <option value="en">English</option>
+        </select>
+        <div class="status" id="languageStatus"></div>
+      </div>
+
+      <div class="setting-group">
+        <label data-i18n="settings.currentFolderLabel">Current Sync Folder</label>
         <div id="currentVault" style="font-family: monospace; font-size: 13px; padding: 8px 12px; background: #f0f7ff; border: 1px solid #4a90e2; border-radius: 4px; word-break: break-all;"></div>
-        <button onclick="browseVault()" style="margin-top: 8px;">📂 Browse... (選擇 Vault 內任一子目錄)</button>
+        <button onclick="browseVault()" style="margin-top: 8px;" data-i18n="settings.browseButton">📂 Browse...</button>
         <div class="status" id="vaultStatus"></div>
       </div>
 
       <div class="setting-group">
-        <label>Vault 清單 (點選切換為該 Vault 根目錄)</label>
+        <label data-i18n="settings.vaultListLabel">Vaults</label>
         <div id="vaultList"></div>
       </div>
-      <!-- 2026-07-02 22:48:00 顯示目前同步目錄完整路徑（可能是 vault 內子目錄）＋ Browse 按鈕. By Claude Fable 5 (effort: default), 傳企監看。 end -->
+      <!-- 2026-07-04 17:57:07 全部靜態標籤改 data-i18n，由 initI18n() 套用字典；新增語言下拉. By Claude Fable 5 (effort: default), 傳企監看。 end -->
       <!-- 2026-07-02 22:48:00 舊版：只有 vaultList，無法顯示/選擇子目錄. By Claude Fable 5 (effort: default), 傳企監看。begin
       <div class="setting-group">
         <label>Selected Vault</label>
@@ -147,18 +159,22 @@
       2026-07-02 22:48:00 舊版：只有 vaultList，無法顯示/選擇子目錄. By Claude Fable 5 (effort: default), 傳企監看。 end -->
 
       <!-- 2026-07-03 00:10:00 Hotkey 改為按鍵錄製：點欄位後直接按組合鍵自動偵測. By Claude Fable 5 (effort: default), 傳企監看。begin -->
+      <!-- 2026-07-04 17:57:07 標籤與 placeholder 改走 i18n. By Claude Fable 5 (effort: default), 傳企監看。begin
+      舊版：<label>Global Hotkey（點擊欄位後直接按下組合鍵）</label>、placeholder="點此後按下組合鍵，例如 Ctrl+Alt+C"、<button>Save Hotkey</button>
+      -->
       <div class="setting-group">
-        <label>Global Hotkey（點擊欄位後直接按下組合鍵）</label>
+        <label data-i18n="settings.hotkeyLabel">Global Hotkey</label>
         <input
           type="text"
           id="hotkey"
           readonly
-          placeholder="點此後按下組合鍵，例如 Ctrl+Alt+C"
+          data-i18n-placeholder="settings.hotkeyPlaceholder"
           style="cursor: pointer; background: #fffef5;"
         />
-        <button onclick="saveHotkey()" style="margin-top: 8px;">Save Hotkey</button>
+        <button onclick="saveHotkey()" style="margin-top: 8px;" data-i18n="settings.saveHotkeyButton">Save Hotkey</button>
         <div class="status" id="hotkeyStatus"></div>
       </div>
+      <!-- 2026-07-04 17:57:07 標籤與 placeholder 改走 i18n. By Claude Fable 5 (effort: default), 傳企監看。 end -->
       <!-- 2026-07-03 00:10:00 Hotkey 改為按鍵錄製：點欄位後直接按組合鍵自動偵測. By Claude Fable 5 (effort: default), 傳企監看。 end -->
       <!-- 2026-07-03 00:10:00 舊版：手打文字輸入. By Claude Fable 5 (effort: default), 傳企監看。begin
       <div class="setting-group">
@@ -174,12 +190,47 @@
       2026-07-03 00:10:00 舊版：手打文字輸入. By Claude Fable 5 (effort: default), 傳企監看。 end -->
 
       <div class="setting-group">
-        <button onclick="openVaultFolder()">📁 Open Vault Folder</button>
-        <button onclick="refreshVaults()">🔄 Refresh Vaults</button>
+        <!-- 2026-07-04 17:57:07 走 i18n. By Claude Fable 5 (effort: default), 傳企監看。begin -->
+        <button onclick="openVaultFolder()" data-i18n="settings.openVaultFolderButton">📁 Open Vault Folder</button>
+        <button onclick="refreshVaults()" data-i18n="settings.refreshVaultsButton">🔄 Refresh Vaults</button>
+        <!-- 2026-07-04 17:57:07 走 i18n. By Claude Fable 5 (effort: default), 傳企監看。 end -->
       </div>
     </div>
 
     <script>
+      // 2026-07-04 17:57:07 i18n：載入字典、套用 data-i18n/placeholder、語言下拉切換即時重繪. By Claude Fable 5 (effort: default), 傳企監看。begin
+      let T = {}; // 目前語言的字典（key → 字串）
+
+      async function initI18n() {
+        const i18n = await window.appAPI.getI18n();
+        T = i18n.messages;
+
+        document.querySelectorAll('[data-i18n]').forEach((el) => {
+          const key = el.getAttribute('data-i18n');
+          if (T[key]) el.textContent = T[key];
+        });
+        document.querySelectorAll('[data-i18n-placeholder]').forEach((el) => {
+          const key = el.getAttribute('data-i18n-placeholder');
+          if (T[key]) el.placeholder = T[key];
+        });
+
+        document.getElementById('language').value = i18n.language;
+      }
+
+      async function saveLanguage() {
+        const language = document.getElementById('language').value;
+        const success = await window.appAPI.setLanguage(language);
+        if (success) {
+          await initI18n();
+          await loadVaults(); // 清單內的動態字串（子目錄標示等）也要重繪
+          const status = document.getElementById('languageStatus');
+          status.textContent = T['settings.statusLanguageSaved'];
+          status.className = 'status success';
+          setTimeout(() => { status.textContent = ''; }, 2000);
+        }
+      }
+      // 2026-07-04 17:57:07 i18n：載入字典、套用 data-i18n/placeholder、語言下拉切換即時重繪. By Claude Fable 5 (effort: default), 傳企監看。 end
+
       async function loadConfig() {
         const config = await window.appAPI.getConfig();
         document.getElementById('hotkey').value = config.globalHotkey;
@@ -193,16 +244,21 @@
         const config = await window.appAPI.getConfig();
         const selected = config.selectedVault || '';
 
+        // 2026-07-04 17:57:07 走 i18n（原：'（尚未選擇）'、'No vaults found'）. By Claude Fable 5 (effort: default), 傳企監看。begin
         document.getElementById('currentVault').textContent =
-          selected || '（尚未選擇）';
+          selected || T['settings.notSelected'];
 
         const vaultList = document.getElementById('vaultList');
         vaultList.innerHTML = '';
 
         if (vaults.length === 0) {
-          vaultList.innerHTML = '<p style="color: #999;">No vaults found</p>';
+          const p = document.createElement('p');
+          p.style.color = '#999';
+          p.textContent = T['settings.noVaultsFound'];
+          vaultList.appendChild(p);
           return;
         }
+        // 2026-07-04 17:57:07 走 i18n（原：'（尚未選擇）'、'No vaults found'）. By Claude Fable 5 (effort: default), 傳企監看。 end
 
         vaults.forEach((vault) => {
           const div = document.createElement('div');
@@ -217,21 +273,24 @@
           }
 
           // 顯示完整路徑；若目前選的是此 vault 內的子目錄，標示出來
-          div.textContent = `📚 ${vault}${isSubdir ? '（目前同步其子目錄）' : ''}`;
+          // 2026-07-04 17:57:07 走 i18n（原：'（目前同步其子目錄）'）. By Claude Fable 5 (effort: default), 傳企監看。begin
+          div.textContent = `📚 ${vault}${isSubdir ? T['settings.syncingSubdir'] : ''}`;
+          // 2026-07-04 17:57:07 走 i18n（原：'（目前同步其子目錄）'）. By Claude Fable 5 (effort: default), 傳企監看。 end
 
           div.onclick = () => selectVault(vault, isSubdir);
           vaultList.appendChild(div);
         });
       }
 
+      // 2026-07-04 17:57:07 狀態字串走 i18n（原：confirm 中文、'✓ Vault selected'、'✓ 已更新同步目錄'）. By Claude Fable 5 (effort: default), 傳企監看。begin
       async function selectVault(vaultPath, isSubdir) {
         // 目前選的是此 vault 的子目錄時，點根目錄會覆寫子目錄選擇，先確認
-        if (isSubdir && !confirm('目前同步的是此 Vault 內的子目錄，切換為 Vault 根目錄？')) {
+        if (isSubdir && !confirm(T['settings.confirmSwitchRoot'])) {
           return;
         }
         const success = await window.appAPI.setVault(vaultPath);
         if (success) {
-          document.getElementById('vaultStatus').textContent = '✓ Vault selected';
+          document.getElementById('vaultStatus').textContent = T['settings.statusVaultSelected'];
           document.getElementById('vaultStatus').className = 'status success';
           loadVaults();
         }
@@ -240,11 +299,12 @@
       async function browseVault() {
         const selected = await window.appAPI.browseVaultFolder();
         if (selected) {
-          document.getElementById('vaultStatus').textContent = '✓ 已更新同步目錄';
+          document.getElementById('vaultStatus').textContent = T['settings.statusFolderUpdated'];
           document.getElementById('vaultStatus').className = 'status success';
         }
         loadVaults();
       }
+      // 2026-07-04 17:57:07 狀態字串走 i18n（原：confirm 中文、'✓ Vault selected'、'✓ 已更新同步目錄'）. By Claude Fable 5 (effort: default), 傳企監看。 end
       // 2026-07-02 22:48:00 新版：顯示完整路徑、辨識子目錄選取、加 Browse；舊版整塊註解保留於下. By Claude Fable 5 (effort: default), 傳企監看。 end
 
       /* 2026-07-02 22:48:00 舊版：只顯示資料夾名、只比對完全相等，子目錄選取顯示不出來且會被覆寫. By Claude Fable 5 (effort: default), 傳企監看。begin
@@ -285,16 +345,17 @@
       }
       2026-07-02 22:48:00 舊版：只顯示資料夾名、只比對完全相等，子目錄選取顯示不出來且會被覆寫. By Claude Fable 5 (effort: default), 傳企監看。 end */
 
+      // 2026-07-04 17:57:07 狀態字串走 i18n（原：'✓ Hotkey saved'、'✗ Invalid hotkey format'、'✓ Opening vault folder...'、'✗ Failed to open vault folder'）. By Claude Fable 5 (effort: default), 傳企監看。begin
       async function saveHotkey() {
         const hotkey = document.getElementById('hotkey').value;
         const success = await window.appAPI.setHotkey(hotkey);
         const status = document.getElementById('hotkeyStatus');
 
         if (success) {
-          status.textContent = '✓ Hotkey saved';
+          status.textContent = T['settings.statusHotkeySaved'];
           status.className = 'status success';
         } else {
-          status.textContent = '✗ Invalid hotkey format';
+          status.textContent = T['settings.statusHotkeyInvalid'];
           status.className = 'status error';
         }
       }
@@ -302,17 +363,18 @@
       async function openVaultFolder() {
         try {
           await window.appAPI.openVaultFolder();
-          document.getElementById('vaultStatus').textContent = '✓ Opening vault folder...';
+          document.getElementById('vaultStatus').textContent = T['settings.statusOpeningFolder'];
           document.getElementById('vaultStatus').className = 'status success';
           setTimeout(() => {
             document.getElementById('vaultStatus').textContent = '';
           }, 2000);
         } catch (error) {
           console.error('Error opening vault folder:', error);
-          document.getElementById('vaultStatus').textContent = '✗ Failed to open vault folder';
+          document.getElementById('vaultStatus').textContent = T['settings.statusOpenFolderFailed'];
           document.getElementById('vaultStatus').className = 'status error';
         }
       }
+      // 2026-07-04 17:57:07 狀態字串走 i18n（原：'✓ Hotkey saved'、'✗ Invalid hotkey format'、'✓ Opening vault folder...'、'✗ Failed to open vault folder'）. By Claude Fable 5 (effort: default), 傳企監看。 end
 
       function refreshVaults() {
         loadVaults();
@@ -324,7 +386,9 @@
         const status = document.getElementById('hotkeyStatus');
 
         input.addEventListener('focus', () => {
-          status.textContent = '請按下組合鍵…（Esc 取消）';
+          // 2026-07-04 17:57:07 走 i18n（原：'請按下組合鍵…（Esc 取消）'）. By Claude Fable 5 (effort: default), 傳企監看。begin
+          status.textContent = T['settings.hotkeyPressCombo'];
+          // 2026-07-04 17:57:07 走 i18n（原：'請按下組合鍵…（Esc 取消）'）. By Claude Fable 5 (effort: default), 傳企監看。 end
           status.className = 'status';
         });
 
@@ -368,7 +432,9 @@
           }
 
           if (!key) {
-            status.textContent = '✗ 不支援的按鍵';
+            // 2026-07-04 17:57:07 走 i18n（原：'✗ 不支援的按鍵'）. By Claude Fable 5 (effort: default), 傳企監看。begin
+            status.textContent = T['settings.hotkeyUnsupportedKey'];
+            // 2026-07-04 17:57:07 走 i18n（原：'✗ 不支援的按鍵'）. By Claude Fable 5 (effort: default), 傳企監看。 end
             status.className = 'status error';
             return;
           }
@@ -381,20 +447,25 @@
 
           // 全域快捷鍵至少要一個修飾鍵，避免吃掉一般打字
           if (mods.length === 0) {
-            status.textContent = '✗ 至少要搭配一個修飾鍵（Ctrl / Alt / Shift / Win）';
+            // 2026-07-04 17:57:07 走 i18n（原：'✗ 至少要搭配一個修飾鍵…'、'已偵測，按「Save Hotkey」儲存'）. By Claude Fable 5 (effort: default), 傳企監看。begin
+            status.textContent = T['settings.hotkeyNeedModifier'];
             status.className = 'status error';
             return;
           }
 
           input.value = [...mods, key].join('+');
-          status.textContent = '已偵測，按「Save Hotkey」儲存';
+          status.textContent = T['settings.hotkeyDetected'];
+          // 2026-07-04 17:57:07 走 i18n（原：'✗ 至少要搭配一個修飾鍵…'、'已偵測，按「Save Hotkey」儲存'）. By Claude Fable 5 (effort: default), 傳企監看。 end
           status.className = 'status success';
         });
       })();
       // 2026-07-03 00:10:00 按鍵錄製：keydown 轉 Electron accelerator 字串. By Claude Fable 5 (effort: default), 傳企監看。 end
 
       // Load config on startup
-      loadConfig();
+      // 2026-07-04 17:57:07 先載字典再載設定（loadVaults 會用到 T）. By Claude Fable 5 (effort: default), 傳企監看。begin
+      // loadConfig();
+      initI18n().then(loadConfig);
+      // 2026-07-04 17:57:07 先載字典再載設定（loadVaults 會用到 T）. By Claude Fable 5 (effort: default), 傳企監看。 end
     </script>
   </body>
 </html>

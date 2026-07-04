@@ -233,4 +233,48 @@ describe('ClipboardMonitor', () => {
     });
   });
   // 2026-07-03 00:27:20 新增：seenHashes 跨實例（模擬 app 重啟）持久化測試. By Claude Fable 5 (effort: default), 傳企監看。 end
+
+  // 2026-07-04 17:25:07 新增：checkNow 狀態回傳（熱鍵通知回饋用）. By Claude Fable 5 (effort: default), 傳企監看。begin
+  describe('checkNow (熱鍵回饋狀態)', () => {
+    it('should return empty when clipboard has no text and no image', () => {
+      mockText = '';
+      mockImageEmpty = true;
+
+      expect(monitor.checkNow()).toBe('empty');
+      expect(callbackExecuted).toBe(false);
+    });
+
+    it('should return new and emit content for fresh clipboard content', () => {
+      mockText = 'fresh content';
+
+      expect(monitor.checkNow()).toBe('new');
+      expect(callbackExecuted).toBe(true);
+      expect(capturedText).toBe('fresh content');
+    });
+
+    it('should return duplicate when clipboard is unchanged', () => {
+      mockText = 'same content';
+      expect(monitor.checkNow()).toBe('new');
+      expect(monitor.checkNow()).toBe('duplicate');
+    });
+
+    it('should return duplicate for content seen earlier in session (A→B→A)', () => {
+      mockText = 'A';
+      expect(monitor.checkNow()).toBe('new');
+      mockText = 'B';
+      expect(monitor.checkNow()).toBe('new');
+      mockText = 'A';
+      expect(monitor.checkNow()).toBe('duplicate');
+    });
+
+    it('should return new for image-only clipboard content', () => {
+      mockText = '';
+      mockImageEmpty = false;
+      mockImageBitmap = Buffer.from('image-data');
+
+      expect(monitor.checkNow()).toBe('new');
+      expect(capturedImage).toEqual(Buffer.from('image-data'));
+    });
+  });
+  // 2026-07-04 17:25:07 新增：checkNow 狀態回傳（熱鍵通知回饋用）. By Claude Fable 5 (effort: default), 傳企監看。 end
 });

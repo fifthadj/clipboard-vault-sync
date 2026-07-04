@@ -1,3 +1,13 @@
+/*
+  目的：app 主行程：托盤、剪貼簿監聽與存檔、全域熱鍵、設定視窗、存檔通知、連續收集模式
+  作者：徐傳企 Mario Hsu（AI 協助：Claude Haiku 初版、Claude Fable 5 修訂）
+  沿革：
+       2026-07-04  v0.1.0.5  1.UI 多語系（en/zh-TW）：托盤、通知、對話框、Settings 全走 i18n，語言可於 Settings 切換（auto/en/zh-TW），切換即時重建托盤選單。
+       2026-07-04  v0.1.0.4  1.存檔後顯示 Windows 通知（含文字預覽與圖片格式）。2.熱鍵觸發後即使重複/空剪貼簿也通知結果。3.托盤新增「連續收集模式」開關（開＝輪詢自動存檔，關＝只有熱鍵才存）。4.補檔頭。
+       2026-07-03  v0.1.0.3  1.崩潰記錄器。2.跨平台 vault 搜尋。3.seenHashes 持久化。
+       2026-07-02  v0.1.0.2  1.熱鍵註冊失敗還原。2.Browse 共用選擇流程。3.托盤圖標修正。
+       2026-07-02  v0.1.0.1  1.誕生日。
+*/
 import {
   app,
   BrowserWindow,
@@ -7,12 +17,68 @@ import {
   ipcMain,
   shell,
   dialog,
+  // 2026-07-04 17:25:07 存檔結果通知需要 Notification. By Claude Fable 5 (effort: default), 傳企監看。begin
+  Notification,
+  // 2026-07-04 17:25:07 存檔結果通知需要 Notification. By Claude Fable 5 (effort: default), 傳企監看。 end
 } from 'electron';
 import * as path from 'path';
 import * as fs from 'fs';
 import { ClipboardMonitor } from './ClipboardMonitor';
 import { VaultManager } from './VaultManager';
 import { ConfigManager } from './ConfigManager';
+// 2026-07-04 17:57:07 UI 多語系. By Claude Fable 5 (effort: default), 傳企監看。begin
+import { t, setLocale, resolveLocale, getMessages, getLocale, LanguagePref } from './i18n';
+// 2026-07-04 17:57:07 UI 多語系. By Claude Fable 5 (effort: default), 傳企監看。 end
+
+// 2026-07-03 02:23:00 崩潰記錄器：未捕捉例外/退出原因寫入 userData/error.log，追查 app 無聲死亡. By Claude Fable 5 (effort: default), 傳企監看。begin
+function logToFile(message: string): void {
+  try {
+    const logPath = path.join(app.getPath('userData'), 'error.log');
+    fs.appendFileSync(logPath, `[${new Date().toISOString()}] ${message}\n`);
+  } catch {
+    // 記錄失敗時不可再拋錯
+  }
+}
+
+process.on('uncaughtException', (err) => {
+  logToFile(`uncaughtException: ${err.stack || err.message}`);
+  console.error('uncaughtException:', err);
+});
+
+process.on('unhandledRejection', (reason) => {
+  logToFile(`unhandledRejection: ${reason instanceof Error ? reason.stack : String(reason)}`);
+  console.error('unhandledRejection:', reason);
+});
+
+app.on('before-quit', () => {
+  logToFile('app before-quit (正常退出路徑，例如托盤 Quit)');
+});
+// 2026-07-03 02:23:00 崩潰記錄器：未捕捉例外/退出原因寫入 userData/error.log，追查 app 無聲死亡. By Claude Fable 5 (effort: default), 傳企監看。 end
+
+// 2026-07-04 17:25:07 存檔結果通知：Windows toast，不支援時靜默略過. By Claude Fable 5 (effort: default), 傳企監看。begin
+function notify(title: string, body: string): void {
+  try {
+    if (Notification.isSupported()) {
+      new Notification({ title, body, silent: true }).show();
+    }
+  } catch (error) {
+    console.error('Failed to show notification:', error);
+  }
+}
+// 2026-07-04 17:25:07 存檔結果通知：Windows toast，不支援時靜默略過. By Claude Fable 5 (effort: default), 傳企監看。 end
+
+// 2026-07-04 17:57:07 熱鍵回饋抽成共用函式（原本 initializeApp 與 set-hotkey 兩處重複），字串走 i18n. By Claude Fable 5 (effort: default), 傳企監看。begin
+function hotkeyTrigger(): void {
+  if (!clipboardMonitor) return;
+  const status = clipboardMonitor.checkNow();
+  if (status === 'duplicate') {
+    notify(t('notify.notSavedTitle'), t('notify.duplicateBody'));
+  } else if (status === 'empty') {
+    notify(t('notify.notSavedTitle'), t('notify.emptyBody'));
+  }
+  // 'new'：content 事件會存檔並發出通知
+}
+// 2026-07-04 17:57:07 熱鍵回饋抽成共用函式（原本 initializeApp 與 set-hotkey 兩處重複），字串走 i18n. By Claude Fable 5 (effort: default), 傳企監看。 end
 
 let tray: Tray | null = null;
 let settingsWindow: BrowserWindow | null = null;
@@ -131,33 +197,54 @@ function createTray(): void {
   }
   // 2026-07-02 23:22:10 已在上方 fallback 建立 tray 時不可重建，加 if (!tray) 防護. By Claude Fable 5 (effort: default), 傳企監看。 end
 
+  // 2026-07-04 17:57:07 選單抽成 applyTrayMenu()：全部標籤走 i18n，語言切換時可即時重建. By Claude Fable 5 (effort: default), 傳企監看。begin
+  applyTrayMenu();
+}
+
+function applyTrayMenu(): void {
+  if (!tray) return;
+
   const contextMenu = Menu.buildFromTemplate([
     {
-      label: 'Clipboard: Monitoring',
-      enabled: false,
+      label: t('tray.continuousMode'),
+      type: 'checkbox',
+      checked: configManager?.getContinuousMode() ?? true,
+      click: (menuItem) => {
+        configManager?.setContinuousMode(menuItem.checked);
+        if (menuItem.checked) {
+          clipboardMonitor?.startPolling(500);
+          notify(t('notify.continuousOnTitle'), t('notify.continuousOnBody'));
+        } else {
+          clipboardMonitor?.stopPolling();
+          notify(
+            t('notify.continuousOffTitle'),
+            t('notify.continuousOffBody', { hotkey: configManager?.getGlobalHotkey() ?? '' })
+          );
+        }
+      },
     },
     { type: 'separator' },
     {
-      label: 'Open Vault Folder',
+      label: t('tray.openVaultFolder'),
       click: () => {
         openVaultFolder();
       },
     },
     {
-      label: 'Select Vault...',
+      label: t('tray.selectVault'),
       click: () => {
         showVaultSelector();
       },
     },
     {
-      label: 'Settings',
+      label: t('tray.settings'),
       click: () => {
         createSettingsWindow();
       },
     },
     { type: 'separator' },
     {
-      label: 'Quit',
+      label: t('tray.quit'),
       click: () => {
         app.quit();
       },
@@ -165,8 +252,9 @@ function createTray(): void {
   ]);
 
   tray.setContextMenu(contextMenu);
-  tray.setToolTip('Clipboard Vault Sync');
+  tray.setToolTip(t('tray.tooltip'));
 }
+// 2026-07-04 17:57:07 選單抽成 applyTrayMenu()：全部標籤走 i18n，語言切換時可即時重建. By Claude Fable 5 (effort: default), 傳企監看。 end
 
 function findVaultRoot(startPath: string): string | null {
   // Search upward through parent directories to find a folder with .obsidian
@@ -194,7 +282,10 @@ function findVaultRoot(startPath: string): string | null {
 async function showVaultSelector(): Promise<string | null> {
   const currentVault = configManager?.getSelectedVault();
   const result = await dialog.showOpenDialog({
-    title: 'Select Folder to Sync Clipboard',
+    // 2026-07-04 17:57:07 對話框標題走 i18n. By Claude Fable 5 (effort: default), 傳企監看。begin
+    // title: 'Select Folder to Sync Clipboard',
+    title: t('dialog.selectFolderTitle'),
+    // 2026-07-04 17:57:07 對話框標題走 i18n. By Claude Fable 5 (effort: default), 傳企監看。 end
     defaultPath: currentVault && fs.existsSync(currentVault) ? currentVault : app.getPath('home'),
     properties: ['openDirectory'],
   });
@@ -213,10 +304,16 @@ async function showVaultSelector(): Promise<string | null> {
       console.log(`   (Vault 根目錄: ${vaultRoot})`);
       return selectedPath;
     } else {
+      // 2026-07-04 17:57:07 錯誤對話框走 i18n. By Claude Fable 5 (effort: default), 傳企監看。begin
+      // dialog.showErrorBox(
+      //   '無效的位置',
+      //   `選擇的文件夾不在任何 Obsidian Vault 內。\n\n請選擇 Vault 內的任何文件夾。\n\n路徑: ${selectedPath}`
+      // );
       dialog.showErrorBox(
-        '無效的位置',
-        `選擇的文件夾不在任何 Obsidian Vault 內。\n\n請選擇 Vault 內的任何文件夾。\n\n路徑: ${selectedPath}`
+        t('dialog.invalidLocationTitle'),
+        t('dialog.invalidLocationBody', { path: selectedPath })
       );
+      // 2026-07-04 17:57:07 錯誤對話框走 i18n. By Claude Fable 5 (effort: default), 傳企監看。 end
     }
   }
   return null;
@@ -271,7 +368,13 @@ function getVaultSearchPaths(): string[] {
 // 2026-07-03 00:23:00 跨平台 vault 搜尋路徑：通用預設＋Windows 掃描全部磁碟＋config 自訂，取代寫死的個人路徑. By Claude Fable 5 (effort: default), 傳企監看。 end
 
 async function initializeApp(): Promise<void> {
+  // 2026-07-04 17:25:07 Windows toast 通知需要 AppUserModelId（打包版沒設會不顯示）. By Claude Fable 5 (effort: default), 傳企監看。begin
+  app.setAppUserModelId('com.clipboard-vault-sync');
+  // 2026-07-04 17:25:07 Windows toast 通知需要 AppUserModelId（打包版沒設會不顯示）. By Claude Fable 5 (effort: default), 傳企監看。 end
   configManager = new ConfigManager();
+  // 2026-07-04 17:57:07 依設定/系統語言初始化 UI 語言（須在任何 t() 使用前）. By Claude Fable 5 (effort: default), 傳企監看。begin
+  setLocale(resolveLocale(configManager.getLanguage(), app.getLocale()));
+  // 2026-07-04 17:57:07 依設定/系統語言初始化 UI 語言（須在任何 t() 使用前）. By Claude Fable 5 (effort: default), 傳企監看。 end
 
   // Scan for available vaults in multiple locations
   // 2026-07-03 00:23:00 改用跨平台搜尋路徑. By Claude Fable 5 (effort: default), 傳企監看。begin
@@ -367,26 +470,62 @@ async function initializeApp(): Promise<void> {
   clipboardMonitor.on('content', async (text: string, image: Buffer | undefined) => {
     if (!currentVaultManager) {
       console.log('No vault selected');
+      // 2026-07-04 17:25:07 沒選 vault 也要讓使用者知道內容沒存到. By Claude Fable 5 (effort: default), 傳企監看。begin
+      // 2026-07-04 17:57:07 走 i18n. By Claude Fable 5 (effort: default), 傳企監看。begin
+      // notify('未存檔', '尚未選擇 Vault，請從托盤選單 Select Vault');
+      notify(t('notify.notSavedTitle'), t('notify.noVaultBody'));
+      // 2026-07-04 17:57:07 走 i18n. By Claude Fable 5 (effort: default), 傳企監看。 end
+      // 2026-07-04 17:25:07 沒選 vault 也要讓使用者知道內容沒存到. By Claude Fable 5 (effort: default), 傳企監看。 end
       return;
     }
 
-    // 2026-07-02 22:32:00 配合 VaultManager 移除 date 參數（原 toISOString 為 UTC 日期，台灣晚間會差一天，順勢移除）. By Claude Fable 5 (effort: default), 傳企監看。begin
-    // const today = new Date().toISOString().split('T')[0];
-    // await currentVaultManager.appendToClipboardNote(text, image, today);
-    await currentVaultManager.appendToClipboardNote(text, image);
-    // 2026-07-02 22:32:00 配合 VaultManager 移除 date 參數（原 toISOString 為 UTC 日期，台灣晚間會差一天，順勢移除）. By Claude Fable 5 (effort: default), 傳企監看。 end
+    // 2026-07-04 17:25:07 存檔後顯示通知：文字預覽＋圖片格式（PNG＝avifenc 轉檔失敗退存），失敗也通知. By Claude Fable 5 (effort: default), 傳企監看。begin
+    // await currentVaultManager.appendToClipboardNote(text, image);
+    try {
+      const result = await currentVaultManager.appendToClipboardNote(text, image);
+      if (result) {
+        const parts: string[] = [];
+        if (result.savedText) {
+          const preview = text.trim().replace(/\s+/g, ' ');
+          parts.push(preview.length > 60 ? `${preview.slice(0, 60)}…` : preview);
+        }
+        // 2026-07-04 17:57:07 走 i18n. By Claude Fable 5 (effort: default), 傳企監看。begin
+        // if (result.savedImage === 'avif') {
+        //   parts.push('[圖片 → AVIF]');
+        // } else if (result.savedImage === 'png') {
+        //   parts.push('[圖片 → PNG（AVIF 轉檔失敗，已退存原圖）]');
+        // }
+        // notify('✅ 已存入 Vault', parts.join(' '));
+        if (result.savedImage === 'avif') {
+          parts.push(t('notify.savedImageAvif'));
+        } else if (result.savedImage === 'png') {
+          parts.push(t('notify.savedImagePngFallback'));
+        }
+        notify(t('notify.savedTitle'), parts.join(' '));
+        // 2026-07-04 17:57:07 走 i18n. By Claude Fable 5 (effort: default), 傳企監看。 end
+      }
+    } catch (error) {
+      console.error('Failed to save clipboard content:', error);
+      // 2026-07-04 17:57:07 走 i18n. By Claude Fable 5 (effort: default), 傳企監看。begin
+      // notify('❌ 存檔失敗', String(error instanceof Error ? error.message : error));
+      notify(t('notify.saveFailedTitle'), String(error instanceof Error ? error.message : error));
+      // 2026-07-04 17:57:07 走 i18n. By Claude Fable 5 (effort: default), 傳企監看。 end
+    }
+    // 2026-07-04 17:25:07 存檔後顯示通知：文字預覽＋圖片格式（PNG＝avifenc 轉檔失敗退存），失敗也通知. By Claude Fable 5 (effort: default), 傳企監看。 end
   });
 
-  clipboardMonitor.startPolling(500);
+  // 2026-07-04 17:25:07 連續收集模式開才輪詢；關的話只有熱鍵觸發存檔. By Claude Fable 5 (effort: default), 傳企監看。begin
+  // clipboardMonitor.startPolling(500);
+  if (configManager.getContinuousMode()) {
+    clipboardMonitor.startPolling(500);
+  }
+  // 2026-07-04 17:25:07 連續收集模式開才輪詢；關的話只有熱鍵觸發存檔. By Claude Fable 5 (effort: default), 傳企監看。 end
 
   // Register global hotkey
   const hotkey = configManager.getGlobalHotkey();
-  globalShortcut.register(hotkey, () => {
-    // Trigger manual clipboard check
-    if (clipboardMonitor) {
-      clipboardMonitor.emit('manual-trigger');
-    }
-  });
+  // 2026-07-04 17:57:07 改用共用 hotkeyTrigger（i18n 化）. By Claude Fable 5 (effort: default), 傳企監看。begin
+  globalShortcut.register(hotkey, hotkeyTrigger);
+  // 2026-07-04 17:57:07 改用共用 hotkeyTrigger（i18n 化）. By Claude Fable 5 (effort: default), 傳企監看。 end
 
   createTray();
 }
@@ -444,11 +583,9 @@ ipcMain.handle('set-hotkey', (_event: any, hotkey: string) => {
   if (!configManager) return false;
 
   const previousHotkey = configManager.getGlobalHotkey();
-  const trigger = () => {
-    if (clipboardMonitor) {
-      clipboardMonitor.emit('manual-trigger');
-    }
-  };
+  // 2026-07-04 17:57:07 改用共用 hotkeyTrigger（i18n 化，消除重複）. By Claude Fable 5 (effort: default), 傳企監看。begin
+  const trigger = hotkeyTrigger;
+  // 2026-07-04 17:57:07 改用共用 hotkeyTrigger（i18n 化，消除重複）. By Claude Fable 5 (effort: default), 傳企監看。 end
 
   globalShortcut.unregister(previousHotkey);
   if (globalShortcut.register(hotkey, trigger)) {
@@ -479,6 +616,26 @@ ipcMain.handle('open-vault-folder', () => {
   openVaultFolder();
   return true;
 });
+
+// 2026-07-04 17:57:07 renderer 取字典／切換語言（切換後即時重建托盤選單）. By Claude Fable 5 (effort: default), 傳企監看。begin
+ipcMain.handle('get-i18n', () => {
+  return {
+    locale: getLocale(),
+    language: configManager?.getLanguage() ?? 'auto',
+    messages: getMessages(),
+  };
+});
+
+ipcMain.handle('set-language', (_event: any, language: LanguagePref) => {
+  if (!configManager) return false;
+  if (language !== 'auto' && language !== 'en' && language !== 'zh-TW') return false;
+
+  configManager.setLanguage(language);
+  setLocale(resolveLocale(language, app.getLocale()));
+  applyTrayMenu();
+  return true;
+});
+// 2026-07-04 17:57:07 renderer 取字典／切換語言（切換後即時重建托盤選單）. By Claude Fable 5 (effort: default), 傳企監看。 end
 
 // 2026-07-02 22:48:00 Settings 的 Browse 走與托盤相同的子目錄選擇流程，回傳最終選定路徑. By Claude Fable 5 (effort: default), 傳企監看。begin
 ipcMain.handle('browse-vault-folder', async () => {

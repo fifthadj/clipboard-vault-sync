@@ -2,6 +2,7 @@
   目的：輪詢系統剪貼簿，偵測新內容並發出 content 事件；同 session 內重複內容只存一次
   作者：徐傳企 Mario Hsu（AI 協助：Claude Haiku 初版、Claude Fable 5 修訂）
   沿革：
+       2026-07-04  v0.1.0.3  1.新增 checkNow()：回傳 'new'|'duplicate'|'empty'，供熱鍵觸發後顯示存檔結果通知。2.checkClipboard 內部改回傳狀態。
        2026-07-02  v0.1.0.2  1.跨歷史去重（seenHashes），重複內容不重複存檔。2.startPolling 先記錄當前剪貼簿，啟動時不誤存舊內容。3.圖片 hash 改用 toBitmap+sha1，取代整張 toDataURL。
        2026-07-02  v0.1.0.1  1.誕生日。
 */
@@ -117,10 +118,23 @@ export class ClipboardMonitor extends EventEmitter {
   //   this.emit('content', text, imageBuffer);
   // }
   // 2026-07-02 22:32:00 舊版：只比對上一筆、圖片用整張 toDataURL 當 hash. By Claude Fable 5 (effort: default), 傳企監看。 end
+  // 2026-07-04 17:25:07 checkNow：熱鍵用的公開入口，回傳檢查結果供通知（'new' 會接著發 content 事件觸發存檔）. By Claude Fable 5 (effort: default), 傳企監看。begin
+  checkNow(): 'new' | 'duplicate' | 'empty' {
+    return this.checkClipboard();
+  }
+  // 2026-07-04 17:25:07 checkNow：熱鍵用的公開入口，回傳檢查結果供通知（'new' 會接著發 content 事件觸發存檔）. By Claude Fable 5 (effort: default), 傳企監看。 end
+
   // 2026-07-02 22:32:00 新版：sha1 hash（圖片走 toBitmap 較省 CPU）＋ seenHashes 跨歷史去重；emitContent=false 只記錄不發事件. By Claude Fable 5 (effort: default), 傳企監看。begin
-  private checkClipboard(emitContent: boolean = true): void {
+  // 2026-07-04 17:25:07 改回傳狀態（'new'|'duplicate'|'empty'）供 checkNow 通知；空剪貼簿提前判定. By Claude Fable 5 (effort: default), 傳企監看。begin
+  private checkClipboard(emitContent: boolean = true): 'new' | 'duplicate' | 'empty' {
     const text = clipboard.readText();
     const image = clipboard.readImage();
+
+    // 空剪貼簿：無文字也無圖片
+    if (!text.trim() && image.isEmpty()) {
+      return 'empty';
+    }
+  // 2026-07-04 17:25:07 改回傳狀態（'new'|'duplicate'|'empty'）供 checkNow 通知；空剪貼簿提前判定. By Claude Fable 5 (effort: default), 傳企監看。 end
 
     const hash = createHash('sha1');
     hash.update(text);
@@ -132,13 +146,17 @@ export class ClipboardMonitor extends EventEmitter {
 
     // 與上一筆相同：剪貼簿沒變，直接略過
     if (currentHash === this.lastHash) {
-      return;
+      // 2026-07-04 17:25:07 回傳 duplicate. By Claude Fable 5 (effort: default), 傳企監看。begin
+      return 'duplicate';
+      // 2026-07-04 17:25:07 回傳 duplicate. By Claude Fable 5 (effort: default), 傳企監看。 end
     }
     this.lastHash = currentHash;
 
     // 本 session 已存過相同內容：不重複存檔
     if (this.seenHashes.has(currentHash)) {
-      return;
+      // 2026-07-04 17:25:07 回傳 duplicate. By Claude Fable 5 (effort: default), 傳企監看。begin
+      return 'duplicate';
+      // 2026-07-04 17:25:07 回傳 duplicate. By Claude Fable 5 (effort: default), 傳企監看。 end
     }
     this.seenHashes.add(currentHash);
     if (this.seenHashes.size > ClipboardMonitor.SEEN_HASHES_MAX) {
@@ -152,11 +170,16 @@ export class ClipboardMonitor extends EventEmitter {
     // 2026-07-03 00:27:20 新 hash 進集合即寫回磁碟（人工複製頻率低，同步寫入成本可忽略）. By Claude Fable 5 (effort: default), 傳企監看。 end
 
     if (!emitContent) {
-      return;
+      // 2026-07-04 17:25:07 只記錄不發事件路徑也回傳 new. By Claude Fable 5 (effort: default), 傳企監看。begin
+      return 'new';
+      // 2026-07-04 17:25:07 只記錄不發事件路徑也回傳 new. By Claude Fable 5 (effort: default), 傳企監看。 end
     }
 
     const imageBuffer = image.isEmpty() ? undefined : this.nativeImageToBuffer(image);
     this.emit('content', text, imageBuffer);
+    // 2026-07-04 17:25:07 回傳 new. By Claude Fable 5 (effort: default), 傳企監看。begin
+    return 'new';
+    // 2026-07-04 17:25:07 回傳 new. By Claude Fable 5 (effort: default), 傳企監看。 end
   }
   // 2026-07-02 22:32:00 新版：sha1 hash（圖片走 toBitmap 較省 CPU）＋ seenHashes 跨歷史去重；emitContent=false 只記錄不發事件. By Claude Fable 5 (effort: default), 傳企監看。 end
 

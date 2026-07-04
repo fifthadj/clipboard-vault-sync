@@ -10,3 +10,6 @@ out/
 release/
 *.stackdump
 .claude/
+
+# avifenc sidecar binary is required for the build (global gitignore excludes *.exe)
+!assets/bin/avifenc.exe

@@ -21,9 +21,7 @@
     "pack": "npm run build && electron-builder --dir",
     "dist": "npm run build && electron-builder"
   },
-  "dependencies": {
-    "sharp": "^0.32.0"
-  },
+  "dependencies": {},
   "devDependencies": {
     "@types/electron": "^1.6.10",
     "@types/jest": "^29.5.0",
@@ -44,7 +42,15 @@
     "files": [
       "dist/**/*",
       "renderer/**/*",
-      "assets/**/*"
+      "assets/**/*",
+      "!assets/bin/**"
+    ],
+    "extraResources": [
+      {
+        "from": "assets/bin",
+        "to": "bin",
+        "filter": ["**/*"]
+      }
     ],
     "win": {
       "icon": "assets/icon.png",

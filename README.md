@@ -10,7 +10,10 @@ Copy anything, keep it forever. A tiny **system-tray app** that watches your cli
 The key difference from Obsidian clipboard plugins: **Obsidian doesn't need to be open.** Plugins only capture while the app is running; this sits in your tray and captures everything, all day, then your notes are just *there* next time you open your vault.
 
 - 📋 **Auto-capture** — polls the system clipboard (500 ms); every new copy becomes a timestamped note
-- 🖼️ **Images too** — screenshots and copied images are converted to **AVIF** (sharp, quality 80) and linked from the note
+- 🖼️ **Images too** — screenshots and copied images are converted to **AVIF** (bundled `avifenc`, quality 80; falls back to PNG if conversion fails — images are never lost) and linked from the note
+- 🔔 **Save feedback** — a toast notification confirms every save; pressing the hotkey also tells you when content was a duplicate or the clipboard was empty
+- 🔁 **Continuous mode toggle** — tray checkbox: on = auto-save every new copy (default), off = save only via hotkey
+- 🌐 **Multilingual UI** — English and Traditional Chinese (繁體中文); follows your system language, switchable in Settings
 - 🧠 **Deduplication** — the same content is never saved twice, even across app restarts (content-hash history)
 - 🚫 **No startup spam** — whatever was already in your clipboard when the app starts is not saved
 - 📁 **Sync to any folder in your vault** — pick the vault root or any subfolder (e.g. your inbox) as the target
@@ -87,7 +90,9 @@ npm run dev      # tsc --watch + electron
 npm run dist     # package (output in release/, NOT dist/ — dist/ is compiled JS)
 ```
 
-Stop any running instance before `npm run dist` — packaging rebuilds sharp and fails with `EBUSY` if the DLLs are loaded.
+Stop any running instance before `npm run dist`, or overwriting `release/` fails with `EBUSY` while files are in use.
+
+AVIF encoding uses a bundled `avifenc.exe` ([libavif](https://github.com/AOMediaCodec/libavif) official static build) at `assets/bin/`, spawned as a child process — no native Node modules involved.
 
 ## License
 
@@ -102,7 +107,10 @@ Stop any running instance before `npm run dist` — packaging rebuilds sharp and
 和 Obsidian 剪貼簿 plugin 的關鍵差異:**不需要開著 Obsidian**。Plugin 只有在 Obsidian 執行時才能收集;這個 app 常駐系統匣,整天默默收集,下次打開 vault 筆記就已經在那裡了。
 
 - 📋 **自動收集** — 每 500ms 輪詢系統剪貼簿,每次複製自動存成一則帶時間戳的筆記
-- 🖼️ **圖片也收** — 截圖與複製的圖片自動轉 **AVIF**(sharp,品質 80)並在筆記中產生連結
+- 🖼️ **圖片也收** — 截圖與複製的圖片自動轉 **AVIF**(內附 avifenc,品質 80;轉檔失敗自動退存 PNG,圖片絕不丟失)並在筆記中產生連結
+- 🔔 **存檔提示** — 每次存檔跳出通知確認;按熱鍵時就算內容重複或剪貼簿是空的也會告知
+- 🔁 **連續收集模式開關** — 托盤勾選:開=每次複製自動存(預設),關=只有按熱鍵才存
+- 🌐 **多語系介面** — 繁體中文與 English;預設跟隨系統語言,可在設定中切換
 - 🧠 **去重** — 相同內容永遠只存一次,**跨 app 重啟依然有效**(內容 hash 歷史)
 - 🚫 **啟動不誤存** — app 啟動前已在剪貼簿的內容不會被存入
 - 📁 **可同步到 vault 內任一資料夾** — 選 vault 根目錄或任何子資料夾(例如你的 inbox)
