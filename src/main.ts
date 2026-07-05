@@ -460,6 +460,13 @@ async function initializeApp(): Promise<void> {
     console.warn('⚠️ 未找到任何有效 Vault');
   }
 
+  // 2026-07-06 03:01:22 把 avifenc 轉檔失敗原因導向 error.log（間歇性退存 PNG 難重現，需持久化 stderr/timeout 才追得到）. By Claude Opus 4.8 (effort: high), 傳企監看。begin
+  VaultManager.avifFailureLogger = (message: string) => {
+    logToFile(`AVIF: ${message}`);
+    console.error(message);
+  };
+  // 2026-07-06 03:01:22 把 avifenc 轉檔失敗原因導向 error.log. By Claude Opus 4.8 (effort: high), 傳企監看。 end
+
   // Initialize clipboard monitor
   // 2026-07-03 00:27:20 傳入持久化路徑，去重跨 app 重啟有效. By Claude Fable 5 (effort: default), 傳企監看。begin
   // clipboardMonitor = new ClipboardMonitor();

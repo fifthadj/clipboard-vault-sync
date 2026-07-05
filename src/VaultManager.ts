@@ -2,6 +2,7 @@
   目的：管理 Obsidian Vault 的剪貼簿筆記寫入（每筆剪貼一檔、一日可多檔）、圖片 AVIF 轉存與 Vault 掃描驗證
   作者：徐傳企 Mario Hsu（AI 協助：Claude Haiku 初版、Claude Fable 5 修訂）
   沿革：
+       2026-07-06  v0.1.0.5  1.avifenc 轉檔失敗改為持久化原因（stderr/exit code/signal/killed）到 error.log，間歇性退存 PNG 從此可診斷；新增可注入的 avifFailureLogger hook。
        2026-07-04  v0.1.0.4  1.AVIF 轉檔改用 avifenc.exe 外部程序（sidecar），移除 sharp（原生模組在 Electron 打包後載入失敗，圖片默默消失）。2.轉檔失敗自動退存 PNG，圖片絕不丟失。3.appendToClipboardNote 回傳存檔結果供通知使用。
        2026-07-02  v0.1.0.3  1.筆記檔名加上本地日期：Clipboard-YYYY-MM-DD_HH-MM-SS-mmm.md（日期與時間以底線分隔，無空白）。
        2026-07-02  v0.1.0.2  1.修正圖片相對路徑 ../attachments → attachments（筆記在根目錄，非 Inbox）。2.移除未使用的 date 參數。3.修正筆記檔頭 typo。
@@ -29,6 +30,18 @@ export class VaultManager {
   // 2026-07-04 17:25:07 avifenc 路徑解析：dev 用專案 assets/bin，打包後用 resources/bin（extraResources）；測試可用 avifencPathOverride 注入. By Claude Fable 5 (effort: default), 傳企監看。begin
   static avifencPathOverride: string | null = null;
 
+  // 2026-07-06 03:01:22 avifenc 失敗記錄 hook：main.ts 注入 logToFile 導向 userData/error.log，未注入時退回 console.error（測試環境）. By Claude Opus 4.8 (effort: high), 傳企監看。begin
+  static avifFailureLogger: ((message: string) => void) | null = null;
+
+  private static logAvifFailure(message: string): void {
+    if (VaultManager.avifFailureLogger) {
+      VaultManager.avifFailureLogger(message);
+    } else {
+      console.error(message);
+    }
+  }
+  // 2026-07-06 03:01:22 avifenc 失敗記錄 hook. By Claude Opus 4.8 (effort: high), 傳企監看。 end
+
   private static resolveAvifencPath(): string | null {
     if (VaultManager.avifencPathOverride !== null) {
       return VaultManager.avifencPathOverride;
@@ -51,7 +64,7 @@ export class VaultManager {
   private async convertToAvif(pngBuffer: Buffer, outputPath: string): Promise<boolean> {
     const avifencPath = VaultManager.resolveAvifencPath();
     if (!avifencPath) {
-      console.error('avifenc not found, will fall back to PNG');
+      VaultManager.logAvifFailure('avifenc 找不到（路徑解析失敗），退存 PNG');
       return false;
     }
 
@@ -61,19 +74,35 @@ export class VaultManager {
     );
     try {
       fs.writeFileSync(tempPng, pngBuffer);
+      // 2026-07-06 03:01:22 抓 avifenc 退存 PNG 的真正原因（間歇性失敗難重現，需持久化 stderr/code/killed 到 error.log 供事後追查）. By Claude Opus 4.8 (effort: high), 傳企監看。begin
+      let capturedStderr = '';
       await new Promise<void>((resolve, reject) => {
         execFile(
           avifencPath,
           ['-q', '80', '-s', '8', tempPng, outputPath],
           { timeout: 60_000, windowsHide: true },
-          (error) => (error ? reject(error) : resolve())
+          (error, _stdout, stderr) => {
+            capturedStderr = String(stderr || '');
+            error ? reject(error) : resolve();
+          }
         );
       });
-      return fs.existsSync(outputPath) && fs.statSync(outputPath).size > 0;
+      const ok = fs.existsSync(outputPath) && fs.statSync(outputPath).size > 0;
+      if (!ok) {
+        VaultManager.logAvifFailure(
+          `avifenc 執行成功但輸出無效 out=${outputPath} pngBytes=${pngBuffer.length} stderr=${capturedStderr.slice(0, 300)}`
+        );
+      }
+      return ok;
     } catch (error) {
-      console.error('avifenc conversion failed, will fall back to PNG:', error);
+      const e = error as NodeJS.ErrnoException & { killed?: boolean; signal?: string };
+      // killed=true + signal=SIGTERM ⇒ 撞到 60s timeout；code=ENOENT ⇒ 找不到 avifenc/暫存檔
+      VaultManager.logAvifFailure(
+        `avifenc 轉檔失敗，退存 PNG：${e.message} code=${e.code} signal=${e.signal} killed=${e.killed} path=${avifencPath} pngBytes=${pngBuffer.length}`
+      );
       return false;
     } finally {
+      // 2026-07-06 03:01:22 抓 avifenc 退存 PNG 的真正原因. By Claude Opus 4.8 (effort: high), 傳企監看。 end
       try {
         fs.unlinkSync(tempPng);
       } catch {

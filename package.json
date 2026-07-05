@@ -1,6 +1,6 @@
 {
   "name": "clipboard-vault-sync",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Clipboard to Obsidian Vault auto-sync with image support",
   "main": "dist/main.js",
   "homepage": "./",
@@ -49,7 +49,9 @@
       {
         "from": "assets/bin",
         "to": "bin",
-        "filter": ["**/*"]
+        "filter": [
+          "**/*"
+        ]
       }
     ],
     "win": {
@@ -57,11 +59,15 @@
       "target": [
         {
           "target": "nsis",
-          "arch": ["x64"]
+          "arch": [
+            "x64"
+          ]
         },
         {
           "target": "portable",
-          "arch": ["x64"]
+          "arch": [
+            "x64"
+          ]
         }
       ]
     },
