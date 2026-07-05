@@ -156,3 +156,20 @@ attachments/clipboard_143025.123456.avif  ← 圖片(自動建立子資料夾)
 ### 平台支援
 
 **Windows** 是作者實際使用與測試的平台。程式碼只用跨平台 Electron API,macOS/Linux 理論可跑(`npm start`)但未經測試——歡迎回報與 PR。已知注意事項:Wayland 會限制背景讀剪貼簿與全域快捷鍵;macOS 托盤需要 template icon。
+
+---
+
+## Changelog / 更新紀錄
+
+完整下載見 [Releases](https://github.com/fifthadj/clipboard-vault-sync/releases)。
+
+### v0.1.2 (2026-07-06)
+- avifenc 轉檔失敗改為把原因(stderr / exit code / signal / 60 秒 timeout 被 kill)寫入 `%APPDATA%/clipboard-vault-sync/error.log`,間歇性退存 PNG 從此可診斷。成功路徑行為不變,圖片一律不遺失。
+
+### v0.1.1 (2026-07-04)
+- 圖片擷取轉存 AVIF(改用 avifenc sidecar,移除打包後失效的 sharp);轉檔失敗自動退存 PNG。
+- 存檔後桌面通知(文字預覽＋圖片格式)。
+- 連續收集模式開關;i18n(en / zh-TW)。
+
+### v0.1.0 (2026-07-02)
+- 首發:輪詢剪貼簿,文字/圖片自動存入 Obsidian vault(每筆一檔),跨歷史去重,全域快捷鍵,系統托盤。
